@@ -32,14 +32,21 @@ class CheckIPAddress:
 
         async def main(crawler_urls):
             headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 "
+                    "Safari/537.36"
+                ),
                 "X-Requested-With": "XMLHttpRequest",
             }
             async with aiohttp.ClientSession(
                 connector=aiohttp.TCPConnector(ssl=False, limit=100),
                 headers=headers,
             ) as client:
-                tasks = [get_ip_detail(client, query_url) for query_url in crawler_urls]
+                tasks = [
+                    get_ip_detail(client, query_url)
+                    for query_url in crawler_urls
+                ]
                 await asyncio.gather(*tasks)
 
         crawler_urls = []

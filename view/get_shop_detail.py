@@ -38,7 +38,13 @@ class ShopParams(BaseModel):
 class ShopDetailCrawler:
     def __init__(self):
         self.basepath = os.path.abspath(os.path.dirname(__file__))
-        self.shop_detail_api = "https://shopee.tw/api/v4/shop/get_shop_base?entry_point=ShopByPDP&need_cancel_rate=true&request_source=shop_home_page&version=1&username="
+        self.shop_detail_api = (
+            "https://shopee.vn/api/v4/shop/get_shop_base"
+            "?entry_point=ShopByPDP"
+            "&need_cancel_rate=true"
+            "&request_source=shop_home_page"
+            "&version=1&username="
+        )
         self.shop_detail = []
 
         today = datetime.datetime.now()
@@ -71,15 +77,21 @@ class ShopDetailCrawler:
                 ) as response:
                     html = await response.text()
                     rsp_status = response.status
-                    assert rsp_status == 200, f"rsp status {rsp_status}, {query_url}"
+                    assert rsp_status == 200, (
+                        f"rsp status {rsp_status}, {query_url}"
+                    )
                     await parser_shop_html(html)
             except Exception as e:
                 logger.warning(f"Exception: {e}")
 
         async def main(crawler_shop_urls):
             headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-                "referer": "https://shopee.tw/",
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 "
+                    "Safari/537.36"
+                ),
+                "referer": "https://shopee.vn/",
                 "X-Requested-With": "XMLHttpRequest",
             }
             async with aiohttp.ClientSession(
@@ -94,7 +106,8 @@ class ShopDetailCrawler:
 
         crawler_shop_urls = []
         for num in range(len(input_shop_names)):
-            crawler_shop_urls.append(self.shop_detail_api + str(input_shop_names[num]))
+            crawler_shop_urls.append(
+                self.shop_detail_api + str(input_shop_names[num]))
         asyncio.run(main(crawler_shop_urls))
 
         df = pd.DataFrame(self.shop_detail)
@@ -105,8 +118,8 @@ class ShopDetailCrawler:
 
 if __name__ == "__main__":
     """
-    api example
-    https://shopee.tw/api/v4/shop/get_shop_base?entry_point=ShopByPDP&need_cancel_rate=true&request_source=shop_home_page&username=mhw3bombertw&version=1
+        api example
+        https://shopee.vn/api/v4/shop/get_shop_base?entry_point=ShopByPDP&need_cancel_rate=true&request_source=shop_home_page&username=mhw3bombertw&version=1
     """
     input_shop_names = [
         "fulinxuan",

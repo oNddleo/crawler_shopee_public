@@ -10,6 +10,7 @@ import aiohttp
 import pandas as pd
 
 from pydantic import BaseModel
+from view.utils import buildQueryString
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class ProductDetailCrawler:
     def __init__(self):
         self.basepath = os.path.abspath(os.path.dirname(__file__))
 
-        self.search_item_api = "https://shopee.tw/api/v4/shop/search_items"
+        self.search_item_api = "https://shopee.vn/api/v4/shop/search_items"
         self.items_list = []
 
         today = datetime.datetime.now()
@@ -83,7 +84,8 @@ class ProductDetailCrawler:
                 for item in info["items"]:
                     item = item["item_basic"]
 
-                    dateArray = datetime.datetime.utcfromtimestamp(item["ctime"])
+                    dateArray = datetime.datetime.utcfromtimestamp(
+                        item["ctime"])
                     transfor_time = dateArray.strftime("%Y-%m-%d %H:%M:%S")
 
                     item_info = ItemParams(
@@ -109,15 +111,21 @@ class ProductDetailCrawler:
                 async with client.get(query_url) as response:
                     html = await response.text()
                     rsp_status = response.status
-                    assert rsp_status == 200, f"rsp status {rsp_status}, {query_url}"
+                    assert rsp_status == 200, (
+                        f"rsp status {rsp_status}, {query_url}"
+                    )
                     await parser_shop_html(html)
-            except Exception as e:
-                logger.warning(f"Exception: {e}")
+            except Exception as error:
+                logger.warning("Exception: %s", error)
 
-        async def main(crawler_itme_urls):
+        async def main(crawler_item_urls):
             headers = {
-                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-                "referer": "https://shopee.tw/",
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 "
+                    "Safari/537.36"
+                ),
+                "Referer": "https://shopee.vn/",
                 "X-Requested-With": "XMLHttpRequest",
             }
             async with aiohttp.ClientSession(
@@ -126,7 +134,7 @@ class ProductDetailCrawler:
             ) as client:
                 tasks = [
                     get_item_detail(client, query_url)
-                    for query_url in crawler_itme_urls
+                    for query_url in crawler_item_urls
                 ]
                 await asyncio.gather(*tasks)
 
@@ -136,17 +144,26 @@ class ProductDetailCrawler:
         df_header.to_csv(self.basepath + "/csv/pdp_detail.csv", index=False)
 
         for row in shop_detail.itertuples():
-            crawler_itme_urls = []
+            crawler_item_urls = []
 
             shop_id = row.shopid
             shop_product_count = row.item_count
             num = 0
             while num < shop_product_count:
-                crawler_itme_urls.append(
-                    f"{self.search_item_api}?offset={str(num)}&limit=100&order=desc&filter_sold_out=3&use_case=1&sort_by=sales&order=sales&shopid={shop_id}"
+                query = buildQueryString({
+                    'offset': str(num),
+                    'limit': 100,
+                    'filter_sold_out': 3,
+                    'use_case': 1,
+                    'order': 'sales',
+                    'sort_by': 'sales',
+                    'shopid': shop_id
+                })
+                crawler_item_urls.append(
+                    f"{self.search_item_api}?{query}"
                 )
                 num += 100
-            asyncio.run(main(crawler_itme_urls))
+            asyncio.run(main(crawler_item_urls))
 
             logger.info(f"└── add Product Page Detail: {shop_product_count}")
         df = pd.DataFrame(self.items_list)
@@ -160,9 +177,9 @@ class ProductDetailCrawler:
 
 
 if __name__ == "__main__":
-    """
+    '''
     # api example
-    # https://shopee.tw/api/v4/shop/search_items?filter_sold_out=1&limit=100&offset=1&order=desc&shopid=5547415&sort_by=pop&use_case=1
+    # https://shopee.vn/api/v4/shop/search_items?filter_sold_out=1&limit=100&offset=1&order=desc&shopid=5547415&sort_by=pop&use_case=1
 
     params use_case:
     1: Top Product
@@ -174,8 +191,7 @@ if __name__ == "__main__":
     1: = sold_out
     2: != sold_out
     3: both
-
-    """
+    '''
 
     basepath = os.path.abspath(os.path.dirname(__file__))
     shop_detail = pd.read_csv(basepath + "/csv/shop_detail.csv")
